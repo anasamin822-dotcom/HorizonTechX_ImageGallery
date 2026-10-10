@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="HorizonTechX Image Gallery - A sleek, responsive image gallery with category filters, interactive lightbox, and animated particle background.">
+  <title>Frames | HorizonTechX Image Gallery</title>
+
+  <!-- Google Fonts with system fallback -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Animated Background Canvas -->
+  <canvas id="particle-canvas" aria-hidden="true"></canvas>
+
+  <!-- Sticky Glass Navigation Header -->
+  <header class="site-header">
+    <div class="header-inner container">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">✦</span>
+        <h1 class="brand-title">Frames</h1>
+        <span class="badge">Horizon TechX</span>
+      </div>
+      <p class="header-tagline">Visual Stories &amp; High-Definition Perspectives</p>
+    </div>
+  </header>
+
+  <!-- Main Gallery Section -->
+  <main class="main-content container">
+    <!-- Hero Introduction -->
+    <section class="hero-section" aria-labelledby="hero-heading">
+      <h2 id="hero-heading" class="hero-title">Curated Photography Collection</h2>
+      <p class="hero-subtitle">
+        Explore handpicked moments capturing wilderness, monumental architecture, urban rhythm, and wildlife.
+      </p>
+    </section>
+
+    <!-- Category Filter Bar -->
+    <section class="filter-section" aria-label="Gallery category filters">
+      <div class="filter-bar" role="toolbar" aria-label="Filter gallery by category">
+        <button type="button" class="filter-btn active" data-category="all" aria-pressed="true">
+          All <span class="filter-count" id="count-all">12</span>
+        </button>
+        <button type="button" class="filter-btn" data-category="nature" aria-pressed="false">
+          Nature <span class="filter-count" id="count-nature">3</span>
+        </button>
+        <button type="button" class="filter-btn" data-category="city" aria-pressed="false">
+          City <span class="filter-count" id="count-city">3</span>
+        </button>
+        <button type="button" class="filter-btn" data-category="architecture" aria-pressed="false">
+          Architecture <span class="filter-count" id="count-architecture">3</span>
+        </button>
+        <button type="button" class="filter-btn" data-category="animals" aria-pressed="false">
+          Animals <span class="filter-count" id="count-animals">3</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Responsive Image Grid (Rendered via JavaScript) -->
+    <section class="gallery-wrapper" aria-label="Image gallery grid">
+      <div id="gallery-grid" class="gallery-grid" role="region" aria-live="polite">
+        <!-- Gallery cards will be dynamically injected by script.js -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Interactive Modal Lightbox -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Expanded image viewer">
+    <!-- Overlay backdrop -->
+    <div class="lightbox-backdrop" id="lightbox-backdrop"></div>
+
+    <!-- Lightbox Main Frame -->
+    <div class="lightbox-dialog">
+      <!-- Lightbox Header / Controls -->
+      <div class="lightbox-top-bar">
+        <span class="lightbox-counter" id="lightbox-counter" aria-live="polite">1 / 12</span>
+        <button type="button" class="lightbox-btn lightbox-close-btn" id="lightbox-close" aria-label="Close image viewer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Image display container with navigation controls -->
+      <div class="lightbox-stage">
+        <!-- Previous Button -->
+        <button type="button" class="lightbox-nav-btn lightbox-prev-btn" id="lightbox-prev" aria-label="View previous image">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Main Displayed Image -->
+        <div class="lightbox-image-wrap" id="lightbox-image-wrap">
+          <div class="lightbox-loader" id="lightbox-loader" aria-label="Loading full resolution image">
+            <div class="spinner"></div>
+          </div>
+          <img id="lightbox-img" class="lightbox-img" src="" alt="" />
+        </div>
+
+        <!-- Next Button -->
+        <button type="button" class="lightbox-nav-btn lightbox-next-btn" id="lightbox-next" aria-label="View next image">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Lightbox Caption & Details Footer -->
+      <div class="lightbox-info">
+        <div class="lightbox-meta">
+          <span class="lightbox-category" id="lightbox-category">Category</span>
+          <h3 class="lightbox-title" id="lightbox-title">Image Title</h3>
+        </div>
+        <p class="lightbox-caption" id="lightbox-caption">Description of the image</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Footer -->
+  <footer class="site-footer">
+    <div class="container footer-content">
+      <p class="footer-credit">Built for Horizon TechX Internship</p>
+      <p class="footer-subtext">Pure Vanilla HTML5 &bull; Modern CSS &bull; JavaScript</p>
+    </div>
+  </footer>
+
+  <!-- Gallery Logic & Canvas Animation -->
+  <script src="js/script.js"></script>
+</body>
+</html>
