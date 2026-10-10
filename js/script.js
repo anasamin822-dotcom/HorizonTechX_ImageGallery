@@ -9,7 +9,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   /* ==========================================================================
-     1. Gallery Dataset (12 Fixed Picsum IDs)
+     1. Gallery Dataset (12 Verified Picsum Photos)
      ========================================================================== */
   const galleryData = [
     {
@@ -17,96 +17,108 @@ document.addEventListener('DOMContentLoaded', () => {
       picId: 1015,
       category: 'nature',
       categoryLabel: 'Nature',
-      title: 'River Canyon Valley',
-      caption: 'A turquoise glacial stream winding through dramatic alpine canyons and rocky slopes.'
+      title: 'Fjord from the Cliffs',
+      caption: 'Blue water winds between steep, snow-dusted mountain cliffs.',
+      alt: 'A deep blue fjord winding between rugged mountain cliffs.'
     },
     {
       id: 2,
-      picId: 1018,
+      picId: 1016,
       category: 'nature',
       categoryLabel: 'Nature',
-      title: 'Misty Mountain Pines',
-      caption: 'Rolling morning mist settling gently over silent evergreen timber ridges.'
+      title: 'Red Rock Canyon',
+      caption: 'A sunlit red-rock landscape of layered cliffs and stone.',
+      alt: 'Sunlit red rock cliffs and rugged desert stone formations.'
     },
     {
       id: 3,
-      picId: 1035,
+      picId: 1043,
       category: 'nature',
       categoryLabel: 'Nature',
-      title: 'Nordic Waterfall',
-      caption: 'A majestic torrent of glacial runoff cutting through dark basalt cliff sides.'
+      title: 'Yosemite Valley Falls',
+      caption: 'A waterfall drops through a forested granite valley.',
+      alt: 'Waterfall and evergreen trees beneath tall granite cliffs.'
     },
     {
       id: 4,
-      picId: 1020,
+      picId: 1026,
       category: 'city',
       categoryLabel: 'City',
-      title: 'Metropolitan Crossing',
-      caption: 'Lively evening city lights and vibrant movement across bustling downtown avenues.'
+      title: 'City Rail Lines at Sunset',
+      caption: 'Parallel railway tracks lead toward a glowing urban sunset.',
+      alt: 'Multiple railway tracks running toward a city skyline at sunset.'
     },
     {
       id: 5,
-      picId: 1039,
+      picId: 1029,
       category: 'city',
       categoryLabel: 'City',
-      title: 'Urban Skyline Twilight',
-      caption: 'Contemporary skyscrapers reflecting warm golden hour hues before nightfall.'
+      title: 'Skyline Above the Park',
+      caption: 'Downtown towers rise over a broad green city park.',
+      alt: 'High-rise city skyline overlooking a large green park.'
     },
     {
       id: 6,
-      picId: 1074,
+      picId: 1047,
       category: 'city',
       categoryLabel: 'City',
-      title: 'Rainy Neon Boulevard',
-      caption: 'Reflections of streetlamps and headlights glistening along wet metropolitan roads.'
+      title: 'Old City Lane',
+      caption: 'A narrow brick-lined lane opens onto a busy city street.',
+      alt: 'Narrow urban alley between brick and stone buildings.'
     },
     {
       id: 7,
-      picId: 1024,
+      picId: 1031,
       category: 'architecture',
       categoryLabel: 'Architecture',
-      title: 'Geodesic Glass Dome',
-      caption: 'Geometric precision and structural lattice illuminated by natural sunlight.'
+      title: 'Glass Facade',
+      caption: 'A clean upward view of a modern geometric building facade.',
+      alt: 'Looking upward along a tall modern glass-and-metal facade.'
     },
     {
       id: 8,
-      picId: 1050,
+      picId: 1048,
       category: 'architecture',
       categoryLabel: 'Architecture',
-      title: 'Classical Stone Arches',
-      caption: 'Timeless vaulted masonry corridors preserving centuries of architectural history.'
+      title: 'Framed by Towers',
+      caption: 'Tall office buildings form a geometric frame around the sky.',
+      alt: 'Upward view of modern skyscrapers surrounding a bright patch of sky.'
     },
     {
       id: 9,
-      picId: 1080,
+      picId: 1076,
       category: 'architecture',
       categoryLabel: 'Architecture',
-      title: 'Minimalist Modern Facade',
-      caption: 'Bold angular cantilevers and stark monochrome symmetry framed under an open sky.'
+      title: 'Angular High-Rise',
+      caption: "A sharply angled view emphasizes a tower's repeating facade.",
+      alt: 'Low-angle view of a tall angular building facade.'
     },
     {
       id: 10,
-      picId: 1043,
+      picId: 1003,
       category: 'animals',
       categoryLabel: 'Animals',
-      title: 'Forest Stalker Wolf',
-      caption: 'A poised wild canine maintaining sharp awareness amidst deep woodland shadows.'
+      title: 'Young Deer in the Woods',
+      caption: 'A young deer stands among softly lit woodland trees.',
+      alt: 'Young deer standing in a softly lit forest.'
     },
     {
       id: 11,
-      picId: 1062,
+      picId: 1024,
       category: 'animals',
       categoryLabel: 'Animals',
-      title: 'Canine Companion',
-      caption: 'An alert dog resting on sun-drenched grass with quiet contentment.'
+      title: 'Eagle in Flight',
+      caption: 'An eagle glides with its wings spread against the sky.',
+      alt: 'Eagle flying with wings fully outstretched.'
     },
     {
       id: 12,
-      picId: 1084,
+      picId: 1062,
       category: 'animals',
       categoryLabel: 'Animals',
-      title: 'Wild Coast Stallion',
-      caption: 'An unbridled horse standing tall against brisk winds on open coastal plains.'
+      title: 'Dog at Rest',
+      caption: 'A small dog rests on a bed under a soft blanket.',
+      alt: 'Small dog resting on a bed beneath a blanket.'
     }
   ];
 
@@ -160,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <img
             class="card-img"
             src="${getThumbnailUrl(item.picId)}"
-            alt="${item.title} - ${item.categoryLabel}"
+            alt="${item.alt || item.title}"
             loading="lazy"
             width="800"
             height="600"
@@ -322,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     imgLoader.onload = () => {
       lightboxImg.src = highResUrl;
-      lightboxImg.alt = `${currentItem.title} - Full resolution view`;
+      lightboxImg.alt = currentItem.alt || `${currentItem.title} - Full resolution view`;
       lightboxLoader.classList.add('is-hidden');
       lightboxImg.classList.remove('is-transitioning');
     };
@@ -330,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     imgLoader.onerror = () => {
       // Fallback to thumbnail URL if high-res fails
       lightboxImg.src = getThumbnailUrl(currentItem.picId);
-      lightboxImg.alt = `${currentItem.title} - Thumbnail view`;
+      lightboxImg.alt = currentItem.alt || `${currentItem.title} - Thumbnail view`;
       lightboxLoader.classList.add('is-hidden');
       lightboxImg.classList.remove('is-transitioning');
     };
