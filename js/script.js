@@ -3,8 +3,10 @@
  * Pure Vanilla JavaScript implementation:
  * - Data-driven image gallery rendering
  * - Interactive particle canvas background
- * - Animated category filtering
- * - Keyboard & touch-accessible lightbox with navigation
+ * - Animated sliding category filter bar with staggered transitions
+ * - Keyboard & touch-accessible lightbox with progress dots and external link
+ * - Header shrink on scroll
+ * - Blur-up image loading skeletons
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -122,14 +124,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   ];
 
-  // Helper URLs for Picsum Photos
+  // Picsum helper URLs
   const getThumbnailUrl = (picId) => `https://picsum.photos/id/${picId}/800/600`;
   const getLightboxUrl = (picId) => `https://picsum.photos/id/${picId}/1600/1000`;
 
   /* ==========================================================================
      2. DOM Element References
      ========================================================================== */
+  const header = document.getElementById('site-header');
   const gridContainer = document.getElementById('gallery-grid');
+  const filterBar = document.getElementById('filter-bar');
+  const filterIndicator = document.getElementById('filter-indicator');
   const filterButtons = document.querySelectorAll('.filter-btn');
 
   // Lightbox elements
@@ -141,24 +146,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const lightboxImg = document.getElementById('lightbox-img');
   const lightboxLoader = document.getElementById('lightbox-loader');
   const lightboxCounter = document.getElementById('lightbox-counter');
+  const lightboxDots = document.getElementById('lightbox-dots');
+  const lightboxExternalLink = document.getElementById('lightbox-external-link');
   const lightboxCategory = document.getElementById('lightbox-category');
   const lightboxTitle = document.getElementById('lightbox-title');
   const lightboxCaption = document.getElementById('lightbox-caption');
 
   // State
   let currentFilter = 'all';
-  let activeItems = [...galleryData]; // Current active items matching the filter
-  let activeIndex = 0; // Index in activeItems
+  let activeItems = [...galleryData];
+  let activeIndex = 0;
   let lastFocusedElement = null;
+  let isFiltering = false;
+
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ==========================================================================
-     3. Render Gallery Grid
+     3. Header Scroll Shrink
+     ========================================================================== */
+  function initHeaderScroll() {
+    if (!header) return;
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        header.classList.add('is-scrolled');
+      } else {
+        header.classList.remove('is-scrolled');
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+  }
+
+  /* ==========================================================================
+     4. Render Gallery Grid
      ========================================================================== */
   function renderGallery() {
     gridContainer.innerHTML = '';
 
     galleryData.forEach((item, index) => {
-      // Create card container
       const card = document.createElement('article');
       card.className = 'gallery-card';
       card.dataset.category = item.category;
@@ -168,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
       card.setAttribute('aria-label', `Open ${item.title} in expanded view`);
 
       card.innerHTML = `
-        <div class="card-media">
+        <div class="card-media is-loading">
           <img
             class="card-img"
             src="${getThumbnailUrl(item.picId)}"
@@ -190,6 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             </div>
             <div class="overlay-bottom">
+              <span class="card-touch-badge">${item.categoryLabel}</span>
               <h3 class="card-title">${item.title}</h3>
               <p class="card-caption-preview">${item.caption}</p>
             </div>
@@ -197,7 +223,28 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
 
-      // Click and Enter/Space keyboard events to trigger lightbox
+      // Image Load state handling for skeleton blur-up
+      const img = card.querySelector('.card-img');
+      const media = card.querySelector('.card-media');
+
+      const onImageLoaded = () => {
+        img.classList.add('is-loaded');
+        media.classList.remove('is-loading');
+      };
+
+      if (img.complete) {
+        onImageLoaded();
+      } else {
+        img.addEventListener('load', onImageLoaded);
+        img.addEventListener('error', onImageLoaded);
+      }
+
+      // 3D Card Hover Tilt (Desktop Only)
+      if (!prefersReducedMotion && window.matchMedia('(hover: hover)').matches) {
+        setupCardTilt(card);
+      }
+
+      // Card Click and Keyboard Open
       card.addEventListener('click', () => {
         openLightboxForItem(item.id);
       });
@@ -213,74 +260,211 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /* 3D Tilt Helper */
+  function setupCardTilt(card) {
+    let bounds;
+    function updateBounds() {
+      bounds = card.getBoundingClientRect();
+    }
+
+    card.addEventListener('mouseenter', updateBounds);
+
+    card.addEventListener('mousemove', (e) => {
+      if (!bounds) updateBounds();
+      const mouseX = e.clientX - bounds.left;
+      const mouseY = e.clientY - bounds.top;
+      const xPct = mouseX / bounds.width;
+      const yPct = mouseY / bounds.height;
+
+      const tiltX = (yPct - 0.5) * -10;
+      const tiltY = (xPct - 0.5) * 10;
+
+      card.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+      card.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+      card.style.setProperty('--tilt-glow-x', `${(xPct * 100).toFixed(1)}%`);
+      card.style.setProperty('--tilt-glow-y', `${(yPct * 100).toFixed(1)}%`);
+    });
+
+    card.addEventListener('mouseleave', () => {
+      card.style.setProperty('--tilt-x', '0deg');
+      card.style.setProperty('--tilt-y', '0deg');
+    });
+  }
+
   /* ==========================================================================
-     4. Category Filter Logic
+     5. Category Filter & Sliding Indicator
      ========================================================================== */
-  function applyFilter(category) {
+  function updateSlidingIndicator(activeBtn) {
+    if (!filterIndicator || !activeBtn) return;
+    filterIndicator.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    filterIndicator.style.width = `${activeBtn.offsetWidth}px`;
+    filterIndicator.classList.add('is-ready');
+    if (filterBar) filterBar.classList.add('has-indicator');
+  }
+
+  function applyFilter(category, clickedBtn) {
+    if (isFiltering) return;
     currentFilter = category;
 
-    // Update active button state and ARIA
+    // Update buttons
     filterButtons.forEach(btn => {
       const match = btn.dataset.category === category;
       btn.classList.toggle('active', match);
       btn.setAttribute('aria-pressed', match ? 'true' : 'false');
     });
 
-    const cards = gridContainer.querySelectorAll('.gallery-card');
+    const activeBtn = clickedBtn || document.querySelector(`.filter-btn[data-category="${category}"]`);
+    updateSlidingIndicator(activeBtn);
 
-    cards.forEach(card => {
-      const cardCategory = card.dataset.category;
-      const shouldShow = (category === 'all' || cardCategory === category);
-
-      if (shouldShow) {
-        card.classList.remove('is-filtered-out');
-        card.removeAttribute('aria-hidden');
-        card.tabIndex = 0;
-      } else {
-        card.classList.add('is-filtered-out');
-        card.setAttribute('aria-hidden', 'true');
-        card.tabIndex = -1;
+    // Pulse active badge count
+    if (activeBtn) {
+      const countEl = activeBtn.querySelector('.filter-count');
+      if (countEl) {
+        countEl.classList.remove('pulse');
+        void countEl.offsetWidth; // trigger reflow
+        countEl.classList.add('pulse');
       }
-    });
+    }
 
-    // Update active items list for lightbox navigation
+    // Update active items for lightbox
     if (category === 'all') {
       activeItems = [...galleryData];
     } else {
       activeItems = galleryData.filter(item => item.category === category);
     }
+
+    const cards = Array.from(gridContainer.querySelectorAll('.gallery-card'));
+
+    if (prefersReducedMotion) {
+      cards.forEach(card => {
+        const matches = (category === 'all' || card.dataset.category === category);
+        if (matches) {
+          card.classList.remove('is-filtered-out');
+          card.removeAttribute('aria-hidden');
+          card.tabIndex = 0;
+        } else {
+          card.classList.add('is-filtered-out');
+          card.setAttribute('aria-hidden', 'true');
+          card.tabIndex = -1;
+        }
+      });
+      return;
+    }
+
+    // Smooth staggered fade-out and fade-in
+    isFiltering = true;
+    cards.forEach(card => {
+      card.classList.add('is-animating-out');
+      card.classList.remove('is-animating-in');
+    });
+
+    setTimeout(() => {
+      let matchIndex = 0;
+      cards.forEach(card => {
+        const matches = (category === 'all' || card.dataset.category === category);
+        if (matches) {
+          card.classList.remove('is-filtered-out');
+          card.removeAttribute('aria-hidden');
+          card.tabIndex = 0;
+
+          // Staggered reveal
+          setTimeout(() => {
+            card.classList.remove('is-animating-out');
+            card.classList.add('is-animating-in');
+          }, matchIndex * 40);
+          matchIndex++;
+        } else {
+          card.classList.add('is-filtered-out');
+          card.setAttribute('aria-hidden', 'true');
+          card.tabIndex = -1;
+        }
+      });
+
+      setTimeout(() => {
+        isFiltering = false;
+      }, matchIndex * 40 + 200);
+    }, 220);
   }
 
+  // Filter button listeners
   filterButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const selected = btn.dataset.category;
-      applyFilter(selected);
+      applyFilter(selected, btn);
     });
   });
 
+  // Re-position filter pill on resize & font load
+  window.addEventListener('resize', () => {
+    const activeBtn = document.querySelector('.filter-btn.active');
+    updateSlidingIndicator(activeBtn);
+  });
+
+  if (document.fonts) {
+    document.fonts.ready.then(() => {
+      const activeBtn = document.querySelector('.filter-btn.active');
+      updateSlidingIndicator(activeBtn);
+    });
+  }
+
   /* ==========================================================================
-     5. Lightbox Modal Controls
+     6. Lightbox Modal Controls & Navigation
      ========================================================================== */
+  function renderLightboxDots() {
+    if (!lightboxDots) return;
+    lightboxDots.innerHTML = '';
+
+    activeItems.forEach((item, idx) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `lightbox-dot-btn ${idx === activeIndex ? 'active' : ''}`;
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', `Go to photo ${idx + 1}: ${item.title}`);
+      dot.setAttribute('aria-selected', idx === activeIndex ? 'true' : 'false');
+
+      dot.addEventListener('click', () => {
+        if (activeIndex !== idx) {
+          activeIndex = idx;
+          updateLightboxContent();
+        }
+      });
+
+      lightboxDots.appendChild(dot);
+    });
+  }
+
+  function syncLightboxDots() {
+    if (!lightboxDots) return;
+    const dots = lightboxDots.querySelectorAll('.lightbox-dot-btn');
+    dots.forEach((dot, idx) => {
+      const isSelected = idx === activeIndex;
+      dot.classList.toggle('active', isSelected);
+      dot.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+
+    const activeDot = dots[activeIndex];
+    if (activeDot && typeof activeDot.scrollIntoView === 'function') {
+      activeDot.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+
   function openLightboxForItem(itemId) {
     lastFocusedElement = document.activeElement;
 
-    // Find the item within the currently active (filtered) items
     let index = activeItems.findIndex(i => i.id === itemId);
-    
-    // If user clicked an item not in current filter (fallback), reset to all
     if (index === -1) {
       applyFilter('all');
       index = galleryData.findIndex(i => i.id === itemId);
     }
 
     activeIndex = index !== -1 ? index : 0;
+    renderLightboxDots();
     updateLightboxContent();
 
     lightbox.classList.add('is-open');
     lightbox.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    document.body.style.overflow = 'hidden';
 
-    // Focus close button for accessibility
     setTimeout(() => {
       lightboxCloseBtn.focus();
     }, 100);
@@ -291,9 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     lightbox.classList.remove('is-open');
     lightbox.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = ''; // Restore scrolling
+    document.body.style.overflow = '';
 
-    // Restore focus back to the triggering element
     if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
       lastFocusedElement.focus();
     }
@@ -315,20 +498,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentItem = activeItems[activeIndex];
     if (!currentItem) return;
 
-    // Display loader & transition state
+    // Cross-fade state
     lightboxLoader.classList.remove('is-hidden');
     lightboxImg.classList.add('is-transitioning');
 
-    // Update text details
+    // Update texts and counter
     lightboxCounter.textContent = `${activeIndex + 1} / ${activeItems.length}`;
     lightboxCategory.textContent = currentItem.categoryLabel;
     lightboxTitle.textContent = currentItem.title;
     lightboxCaption.textContent = currentItem.caption;
 
-    // Load full resolution photo
+    // Update View Full Image link
     const highResUrl = getLightboxUrl(currentItem.picId);
+    if (lightboxExternalLink) {
+      lightboxExternalLink.href = highResUrl;
+    }
 
-    // Preload image object to avoid flicker
+    // Sync dots progress bar
+    syncLightboxDots();
+
+    // Preload image
     const imgLoader = new Image();
     imgLoader.src = highResUrl;
 
@@ -340,7 +529,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     imgLoader.onerror = () => {
-      // Fallback to thumbnail URL if high-res fails
       lightboxImg.src = getThumbnailUrl(currentItem.picId);
       lightboxImg.alt = currentItem.alt || `${currentItem.title} - Thumbnail view`;
       lightboxLoader.classList.add('is-hidden');
@@ -348,13 +536,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Lightbox Click Listeners
+  // Lightbox click listeners
   lightboxCloseBtn.addEventListener('click', closeLightbox);
   lightboxBackdrop.addEventListener('click', closeLightbox);
   lightboxNextBtn.addEventListener('click', showNextImage);
   lightboxPrevBtn.addEventListener('click', showPrevImage);
 
-  // Keyboard navigation
+  // Keyboard navigation & Focus trap
   document.addEventListener('keydown', (e) => {
     if (!lightbox.classList.contains('is-open')) return;
 
@@ -365,10 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (e.key === 'ArrowLeft') {
       showPrevImage();
     } else if (e.key === 'Tab') {
-      // Focus trap within lightbox
       const focusableEls = lightbox.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
+      if (focusableEls.length === 0) return;
       const firstEl = focusableEls[0];
       const lastEl = focusableEls[focusableEls.length - 1];
 
@@ -389,7 +577,7 @@ document.addEventListener('DOMContentLoaded', () => {
   /* Touch Swipe Navigation for Mobile Lightbox */
   let touchStartX = 0;
   let touchEndX = 0;
-  const minSwipeDistance = 50;
+  const minSwipeDistance = 45;
 
   lightbox.addEventListener('touchstart', (e) => {
     touchStartX = e.changedTouches[0].screenX;
@@ -397,24 +585,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   lightbox.addEventListener('touchend', (e) => {
     touchEndX = e.changedTouches[0].screenX;
-    handleSwipeGesture();
-  }, { passive: true });
-
-  function handleSwipeGesture() {
     const swipeDistance = touchEndX - touchStartX;
     if (Math.abs(swipeDistance) >= minSwipeDistance) {
       if (swipeDistance < 0) {
-        // Swiped Left -> Next
         showNextImage();
       } else {
-        // Swiped Right -> Previous
         showPrevImage();
       }
     }
-  }
+  }, { passive: true });
 
   /* ==========================================================================
-     6. Animated Particle Background Canvas
+     7. Animated Particle Canvas Background
      ========================================================================== */
   function initParticleCanvas() {
     const canvas = document.getElementById('particle-canvas');
@@ -423,9 +605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Respect user's motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (prefersReducedMotion.matches) {
+    if (prefersReducedMotion) {
       canvas.style.display = 'none';
       return;
     }
@@ -436,7 +616,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let animationFrameId = null;
     let isRunning = true;
 
-    // Mouse proximity tracking
     const mouse = {
       x: null,
       y: null,
@@ -453,7 +632,6 @@ document.addEventListener('DOMContentLoaded', () => {
       mouse.y = null;
     });
 
-    // Particle constructor
     class Particle {
       constructor() {
         this.x = Math.random() * width;
@@ -461,8 +639,8 @@ document.addEventListener('DOMContentLoaded', () => {
         this.size = Math.random() * 1.8 + 1.2;
         this.baseX = this.x;
         this.baseY = this.y;
-        this.vx = (Math.random() - 0.5) * 0.45;
-        this.vy = (Math.random() - 0.5) * 0.45;
+        this.vx = (Math.random() - 0.5) * 0.42;
+        this.vy = (Math.random() - 0.5) * 0.42;
         this.density = Math.random() * 20 + 10;
         this.alpha = Math.random() * 0.45 + 0.25;
       }
@@ -475,30 +653,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       update() {
-        // Subtle Mouse Interaction
         if (mouse.x !== null && mouse.y !== null) {
           const dx = mouse.x - this.x;
           const dy = mouse.y - this.y;
           const distance = Math.hypot(dx, dy);
 
           if (distance < mouse.radius) {
-            const forceDirectionX = dx / distance;
-            const forceDirectionY = dy / distance;
-            const maxDistance = mouse.radius;
-            const force = (maxDistance - distance) / maxDistance;
-            const directionX = forceDirectionX * force * 1.2;
-            const directionY = forceDirectionY * force * 1.2;
+            const force = (mouse.radius - distance) / mouse.radius;
+            const directionX = (dx / distance) * force * 1.2;
+            const directionY = (dy / distance) * force * 1.2;
 
             this.x -= directionX;
             this.y -= directionY;
           }
         }
 
-        // Standard gentle drift
         this.x += this.vx;
         this.y += this.vy;
 
-        // Wrap around screen borders
         if (this.x < 0) this.x = width;
         if (this.x > width) this.x = 0;
         if (this.y < 0) this.y = height;
@@ -512,9 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
       canvas.width = width;
       canvas.height = height;
 
-      // Adjust particle count: fewer on mobile screens
       const isMobile = width < 768;
-      const targetCount = isMobile ? 38 : 75;
+      const targetCount = isMobile ? 36 : 70;
 
       particles = [];
       for (let i = 0; i < targetCount; i++) {
@@ -547,7 +718,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function animate() {
       if (!isRunning) return;
-
       ctx.clearRect(0, 0, width, height);
 
       for (let i = 0; i < particles.length; i++) {
@@ -559,7 +729,6 @@ document.addEventListener('DOMContentLoaded', () => {
       animationFrameId = requestAnimationFrame(animate);
     }
 
-    // Debounced resize handler
     let resizeTimer;
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
@@ -568,7 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 150);
     });
 
-    // Pause animation when the browser tab is hidden to save battery & CPU
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         isRunning = false;
@@ -586,8 +754,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ==========================================================================
-     7. Initialization
+     8. App Initialization
      ========================================================================== */
   renderGallery();
+  initHeaderScroll();
   initParticleCanvas();
+
+  // Position initial sliding pill
+  const initialActiveBtn = document.querySelector('.filter-btn.active');
+  if (initialActiveBtn) {
+    updateSlidingIndicator(initialActiveBtn);
+  }
 });

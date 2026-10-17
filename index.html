@@ -6,10 +6,13 @@
   <meta name="description" content="HorizonTechX Image Gallery - A sleek, responsive image gallery with category filters, interactive lightbox, and animated particle background.">
   <title>Frames | HorizonTechX Image Gallery</title>
 
-  <!-- Google Fonts with system fallback -->
+  <!-- Inline SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d1120'/%3E%3Crect x='4' y='4' width='24' height='24' rx='5' fill='none' stroke='%236366f1' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='5' fill='none' stroke='%2322d3ee' stroke-width='2'/%3E%3Ccircle cx='23' cy='9' r='1.5' fill='%2322d3ee'/%3E%3C/svg%3E">
+
+  <!-- Google Fonts: Fraunces (Display) & Plus Jakarta Sans (Body) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
@@ -19,14 +22,27 @@
   <canvas id="particle-canvas" aria-hidden="true"></canvas>
 
   <!-- Sticky Glass Navigation Header -->
-  <header class="site-header">
+  <header class="site-header" id="site-header">
     <div class="header-inner container">
       <div class="brand">
         <span class="brand-logo" aria-hidden="true">✦</span>
         <h1 class="brand-title">Frames</h1>
         <span class="badge">Horizon TechX</span>
       </div>
-      <p class="header-tagline">Visual Stories &amp; High-Definition Perspectives</p>
+      
+      <div class="header-actions">
+        <p class="header-tagline">Visual Stories &amp; High-Definition Perspectives</p>
+        <a href="https://github.com/anasamin822-dotcom/HorizonTechX_ImageGallery" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           class="github-link" 
+           aria-label="View source repository on GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+          </svg>
+          <span class="github-text">GitHub</span>
+        </a>
+      </div>
     </div>
   </header>
 
@@ -34,7 +50,15 @@
   <main class="main-content container">
     <!-- Hero Introduction -->
     <section class="hero-section" aria-labelledby="hero-heading">
-      <h2 id="hero-heading" class="hero-title">Curated Photography Collection</h2>
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot" aria-hidden="true"></span>
+        <span>Curated Photography Exhibition</span>
+      </div>
+      <h2 id="hero-heading" class="hero-title">
+        <span class="hero-title-line">Curated Photography</span>
+        <span class="hero-title-line">Collection</span>
+      </h2>
       <p class="hero-subtitle">
         Explore handpicked moments capturing wilderness, monumental architecture, urban rhythm, and wildlife.
       </p>
@@ -42,7 +66,8 @@
 
     <!-- Category Filter Bar -->
     <section class="filter-section" aria-label="Gallery category filters">
-      <div class="filter-bar" role="toolbar" aria-label="Filter gallery by category">
+      <div class="filter-bar" id="filter-bar" role="toolbar" aria-label="Filter gallery by category">
+        <span class="filter-indicator" id="filter-indicator" aria-hidden="true"></span>
         <button type="button" class="filter-btn active" data-category="all" aria-pressed="true">
           All <span class="filter-count" id="count-all">12</span>
         </button>
@@ -79,12 +104,22 @@
       <!-- Lightbox Header / Controls -->
       <div class="lightbox-top-bar">
         <span class="lightbox-counter" id="lightbox-counter" aria-live="polite">1 / 12</span>
-        <button type="button" class="lightbox-btn lightbox-close-btn" id="lightbox-close" aria-label="Close image viewer">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
+        <div class="lightbox-top-actions">
+          <a href="#" id="lightbox-external-link" target="_blank" rel="noopener noreferrer" class="lightbox-action-btn lightbox-view-full" aria-label="Open full resolution image in new tab">
+            <span>View full image</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+          </a>
+          <button type="button" class="lightbox-btn lightbox-close-btn" id="lightbox-close" aria-label="Close image viewer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <!-- Image display container with navigation controls -->
@@ -112,6 +147,11 @@
         </button>
       </div>
 
+      <!-- Thumbnail / Dot Navigation Strip -->
+      <div class="lightbox-dots" id="lightbox-dots" role="tablist" aria-label="Image thumbnails progress">
+        <!-- Dots injected dynamically by script.js -->
+      </div>
+
       <!-- Lightbox Caption & Details Footer -->
       <div class="lightbox-info">
         <div class="lightbox-meta">
@@ -127,6 +167,10 @@
   <footer class="site-footer">
     <div class="container footer-content">
       <p class="footer-credit">Built for Horizon TechX Internship</p>
+      <p class="footer-author">
+        Built by <a href="https://github.com/anasamin822-dotcom" target="_blank" rel="noopener noreferrer">Md Anas Amin</a> &bull;
+        <a href="https://github.com/anasamin822-dotcom/HorizonTechX_ImageGallery" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+      </p>
       <p class="footer-subtext">Pure Vanilla HTML5 &bull; Modern CSS &bull; JavaScript</p>
     </div>
   </footer>
