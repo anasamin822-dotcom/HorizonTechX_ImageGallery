@@ -246,12 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Card Click and Keyboard Open
       card.addEventListener('click', () => {
+        lastFocusedElement = card;
         openLightboxForItem(item.id);
       });
 
       card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
+          lastFocusedElement = card;
           openLightboxForItem(item.id);
         }
       });
@@ -296,8 +298,11 @@ document.addEventListener('DOMContentLoaded', () => {
      ========================================================================== */
   function updateSlidingIndicator(activeBtn) {
     if (!filterIndicator || !activeBtn) return;
-    filterIndicator.style.transform = `translateX(${activeBtn.offsetLeft}px)`;
+    filterIndicator.style.left = `${activeBtn.offsetLeft}px`;
+    filterIndicator.style.top = `${activeBtn.offsetTop}px`;
     filterIndicator.style.width = `${activeBtn.offsetWidth}px`;
+    filterIndicator.style.height = `${activeBtn.offsetHeight}px`;
+    filterIndicator.style.transform = 'none';
     filterIndicator.classList.add('is-ready');
     if (filterBar) filterBar.classList.add('has-indicator');
   }
@@ -449,7 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function openLightboxForItem(itemId) {
-    lastFocusedElement = document.activeElement;
+    const cardEl = document.querySelector(`.gallery-card[data-id="${itemId}"]`);
+    lastFocusedElement = cardEl || document.activeElement;
 
     let index = activeItems.findIndex(i => i.id === itemId);
     if (index === -1) {
